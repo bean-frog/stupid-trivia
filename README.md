@@ -1,5 +1,6 @@
 # stupid trivia
 A trivia game where most of the answers are kinda stupid. <br>
+this is just the source code, check out the actual playable game at [beanfrog.xyz/projects/stupid-trivia](https://beanfrog.xyz/projects/stupid-trivia)
 Partially inspired by Magic The Noah's video on Youtube (basic concept and some of the questions) <br>
 check his channel out, it's pretty funny
 
