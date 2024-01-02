@@ -14,7 +14,7 @@ const Game = ({ returnToMenu }) => {
   const [isCorrect, setIsCorrect] = useState(null);
   const [score, setScore] = useState(0);
   const [randomQuestions, setRandomQuestions] = useState([]);
-  const gameContainerRef = useRef(null);
+  const screenshotRef = useRef(null);
 
   const handleResetGame = () => {
     const selectedQuestions = getRandomQuestions(questions);
@@ -34,20 +34,25 @@ const Game = ({ returnToMenu }) => {
     setUserAnswer(event.target.value);
   };
 
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+
   const handleAnswerSubmit = () => {
+    setIsButtonDisabled(true);
+
     const correctAnswer = randomQuestions[currentQuestionIndex].answer
       .trim()
-      .toLowerCase();
-    const userAnswerLowerCase = userAnswer.trim().toLowerCase();
+      .toLowerCase()
+      .replace(" ", "")
+      .replace(",", "")
+      .replace(".", "");
+    const userAnswerLowerCase = userAnswer
+      .trim()
+      .toLowerCase()
+      .replace(" ", "")
+      .replace(",", "")
+      .replace(".", "");
 
-    const isAnswerNumeric = !isNaN(userAnswerLowerCase);
-    const isAnswerCorrect =
-      (isAnswerNumeric && userAnswerLowerCase === correctAnswer) ||
-      (!isAnswerNumeric &&
-        (userAnswerLowerCase.includes(correctAnswer) ||
-          correctAnswer.includes(userAnswerLowerCase) ||
-          getCommonLength(userAnswerLowerCase, correctAnswer) >=
-            Math.ceil(correctAnswer.length * 0.2)));
+    const isAnswerCorrect = userAnswerLowerCase === correctAnswer;
 
     setIsCorrect(isAnswerCorrect);
 
@@ -55,49 +60,52 @@ const Game = ({ returnToMenu }) => {
       setScore((prevScore) => prevScore + 1);
     }
   };
-
-  const getCommonLength = (str1, str2) => {
-    let commonLength = 0;
-    for (let i = 0; i < Math.min(str1.length, str2.length); i++) {
-      if (str1[i] === str2[i]) {
-        commonLength++;
-      } else {
-        break;
-      }
+  const takeScreenshot = () => {
+    if (screenshotRef.current) {
+      html2canvas(screenshotRef.current)
+        .then((canvas) => {
+          const dataURL = canvas.toDataURL();
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(dataURL)
+              .then(() => {
+                console.log('Screenshot copied to clipboard!');
+              })
+              .catch((error) => {
+                console.error('Error copying to clipboard:', error);
+              });
+          } else {
+            alert('Clipboard API not supported on this browser. You can manually take a screenshot.');
+          }
+        })
+        .catch((error) => {
+          console.error('Error capturing screenshot:', error);
+        });
     }
-    return commonLength;
   };
+  
+const copyText = () => {
+  const message = `I just got a score of ${score}/10 in Stupid Trivia! Join me at https://beanfrog.xyz/projects/stupid-trivia`
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(message)
+      .then(() => {
+        console.log('text copied to clipboard!');
+      })
+      .catch((error) => {
+        console.error('Error copying to clipboard:', error);
+      });
+  } else {
+    alert('Clipboard API not supported on this browser.');
+  }
+}
+
 
   const handleNextQuestion = () => {
     setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
     setUserAnswer("");
     setIsCorrect(null);
+    setIsButtonDisabled(false);
   };
 
-  const handleScreenshot = async () => {
-    if (gameContainerRef.current) {
-      try {
-        const screenshot = await html2canvas(gameContainerRef.current);
-        const imageDataUrl = screenshot.toDataURL();
-
-        // Copy the image to the clipboard
-        copyToClipboard(imageDataUrl);
-        alert("Screenshot copied to clipboard!");
-      } catch (error) {
-        console.error("Error capturing screenshot:", error);
-        alert("Error capturing screenshot. Please try again.");
-      }
-    }
-  };
- const copyToClipboard = (imageDataUrl) => {
-    navigator.clipboard.writeText(imageDataUrl)
-      .then(() => {
-        console.log('Screenshot copied to clipboard!');
-      })
-      .catch((err) => {
-        console.error('Unable to copy to clipboard', err);
-      });
-  };
 
 const getCurrentDate = () => {
   const months = [
@@ -114,24 +122,25 @@ const getCurrentDate = () => {
 };
 
   return (
-    <div ref={gameContainerRef} className="max-w-xl mx-auto mt-16 p-6 bg-gray-100 rounded-lg shadow-md h-[400px] w-[500px]">
+    <div ref={screenshotRef} className="max-w-xl mx-auto mt-16 p-6 bg-gray-100 rounded-lg shadow-md h-[400px] w-[500px]">
 
-      <h1 className="text-3xl font-bold mb-4">Stupid Trivia</h1>
+      <h1 className="mb-4 text-3xl font-bold">Stupid Trivia</h1>
       {currentQuestionIndex < randomQuestions.length ? (
         <div>
-          <p className="text-lg mb-2">
+          <p className="mb-2 text-lg">
             {randomQuestions[currentQuestionIndex].question}
           </p>
           <input
             type="text"
             value={userAnswer}
             onChange={handleAnswerChange}
-            className="border p-2 mb-4 w-full"
+            className="p-2 mb-4 w-full border"
           />
           <div className="flex">
             <button
               onClick={handleAnswerSubmit}
               className="flex-shrink-0 mr-2 text-white px-4 py-2 bg-emerald-400 hover:bg-emerald-500 rounded-md hover:scale-[1.01] active:scale-95"
+              disabled={isButtonDisabled}
             >
               Submit Answer
             </button>
@@ -158,24 +167,35 @@ const getCurrentDate = () => {
         </div>
       ) : (
         <div>
-          <div className="flex flex-col items-center justify-center">
-            <p className="text-2xl mt-2 text-center">Your score was:</p>
-            <p className="text-5xl mt-2 text-blue-500 font-bold text-center">
+          <div className="flex flex-col justify-center items-center">
+            <p className="mt-2 text-2xl text-center">Your score was:</p>
+            <p className="mt-2 text-5xl font-bold text-center text-blue-500">
               {score}/10
             </p>
-            <p className="text-black mt-2">{getCurrentDate()}</p>
+            <p className="mt-2 text-black">{getCurrentDate()}</p>
             <button
               onClick={handleResetGame}
               className="mt-4 text-white px-4 py-2 bg-emerald-400 hover:bg-emerald-500 rounded-md hover:scale-[1.01] active:scale-95"
             >
               Play Again
             </button>
-             <button
-            onClick={handleScreenshot}
+            <div className="flex flex-row">
+            <button
+           onClick={takeScreenshot}
+            className="mt-2 mr-2 text-white px-4 py-2 bg-emerald-400 hover:bg-emerald-500 rounded-md hover:scale-[1.01] active:scale-95"
+          >
+            Screenshot
+          </button>
+
+          <button
+           onClick={copyText}
             className="mt-2 text-white px-4 py-2 bg-emerald-400 hover:bg-emerald-500 rounded-md hover:scale-[1.01] active:scale-95"
           >
-            Screenshot your score
+            Copy text
           </button>
+              </div>
+            
+
             <button
               onClick={returnToMenu}
               className="mt-2 text-white px-4 py-2 bg-slate-400 hover:bg-slate-500 rounded-md hover:scale-[1.01] active:scale-95"
