@@ -42,15 +42,13 @@ const Game = ({ returnToMenu }) => {
     const correctAnswer = randomQuestions[currentQuestionIndex].answer
       .trim()
       .toLowerCase()
-      .replace(" ", "")
-      .replace(",", "")
-      .replace(".", "");
+      .replace(/[\s,\.]/g, "")
+      console.log(correctAnswer)
     const userAnswerLowerCase = userAnswer
       .trim()
       .toLowerCase()
-      .replace(" ", "")
-      .replace(",", "")
-      .replace(".", "");
+      .replace(/[\s,\.]/g, "")
+      console.log(userAnswerLowerCase)
 
     const isAnswerCorrect = userAnswerLowerCase === correctAnswer;
 
